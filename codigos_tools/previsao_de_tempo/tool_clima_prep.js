@@ -1,16 +1,15 @@
-const apiData = $input.first().json;
+//serve para "padronizar" os dados que chegam. Ele tenta encontrar o nome da 
+// cidade e do estado em diferentes formatos (português ou inglês) e define valores
+// padrão caso nada seja encontrado.
 
-try {
-    const meta   = apiData.chart.result[0].meta;
-    const preco  = meta.regularMarketPrice;
-    const moeda  = meta.currency;
-    const symbol = meta.symbol;
+// Captura o primeiro objeto JSON que chega ao nó
+const input = $input.first().json;
 
-    const precoFmt = preco.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+// Define a cidade: tenta 'cidade', se não existir tenta 'city', se não, usa 'Brasilia' como padrão
+const cidade = input.cidade ?? input.city ?? 'Brasilia';
 
-    return [{ json: { 
-        resultado: `${symbol} — ${precoFmt} ${moeda} | Fonte: Yahoo Finance` 
-    }}];
-} catch(e) {
-    return [{ json: { resultado: `Erro ao buscar cotação: ${e.message}` } }];
-}
+// Define o estado: tenta 'estado', se não existir tenta 'state', se não, deixa como nulo
+const estado = input.estado ?? input.state ?? null;
+
+// Retorna o resultado formatado para o n8n continuar o fluxo
+return [{ json: { cidade, estado } }];
