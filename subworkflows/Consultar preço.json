@@ -1,0 +1,107 @@
+{
+  "name": "Consultar preço",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst commodity = (input.commodity ?? input.query ?? 'soja').toLowerCase().trim();\n\nconst commodityMap = {\n  'soja':      { nome: 'Soja',      ticker: 'ZS=F' },\n  'milho':     { nome: 'Milho',     ticker: 'ZC=F' },\n  'cafe':      { nome: 'Café',      ticker: 'KC=F' },\n  'algodao':   { nome: 'Algodão',   ticker: 'CT=F' },\n  'boi gordo': { nome: 'Boi Gordo', ticker: 'GF=F' },\n  'boi':       { nome: 'Boi Gordo', ticker: 'GF=F' },\n  'trigo':     { nome: 'Trigo',     ticker: 'ZW=F' },\n  'arroz':     { nome: 'Arroz',     ticker: 'ZR=F' },\n};\n\nconst dados = commodityMap[commodity] ?? { nome: commodity, ticker: 'ZS=F' };\n\nreturn [{ json: { nomeProduto: dados.nome, ticker: dados.ticker, commodity } }];"
+      },
+      "id": "d003721e-1afa-49c7-b43b-8b42cd7e415e",
+      "name": "Tool Preco Prep",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const apiData = $input.first().json;\n\ntry {\n    const meta   = apiData.chart.result[0].meta;\n    const preco  = meta.regularMarketPrice;\n    const moeda  = meta.currency;\n    const symbol = meta.symbol;\n\n    const precoFmt = preco.toLocaleString('pt-BR', { minimumFractionDigits: 2 });\n\n    return [{ json: { \n        resultado: `${symbol} — ${precoFmt} ${moeda} | Fonte: Yahoo Finance` \n    }}];\n} catch(e) {\n    return [{ json: { resultado: `Erro ao buscar cotação: ${e.message}` } }];\n}"
+      },
+      "id": "d7be1aaa-2ae9-4d2c-8ae5-d0da9713de6c",
+      "name": "Tool Preco Formatar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "3a104555-b1ef-4959-abff-4bdae3d7ee09",
+      "typeVersion": 1.1,
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        32,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://query1.finance.yahoo.com/v8/finance/chart/{{ $json.ticker }}?interval=1d&range=1d",
+        "options": {
+          "allowUnauthorizedCerts": true,
+          "timeout": 10000
+        }
+      },
+      "id": "cd8d5254-3409-4bf7-a2ad-1fc9fa9764eb",
+      "name": "HTTP Yahoo Finance",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        352
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Tool Preco Prep": {
+      "main": [
+        [
+          {
+            "node": "HTTP Yahoo Finance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Tool Preco Prep",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Yahoo Finance": {
+      "main": [
+        [
+          {
+            "node": "Tool Preco Formatar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "57e2367e-5ec8-40fd-9170-355458dee874",
+  "meta": {
+    "instanceId": "8aebff44e01b64174ada2afb1f393a349734932b543f78ee07e9ee3c1c89f3e7"
+  },
+  "id": "lccevabohCqJvYyf",
+  "tags": []
+}

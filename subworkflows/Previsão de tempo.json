@@ -1,0 +1,157 @@
+{
+  "name": "Previsão de tempo",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst cidade = input.cidade ?? input.city ?? 'Brasilia';\nconst estado = input.estado ?? input.state ?? null;\nreturn [{ json: { cidade, estado } }];"
+      },
+      "id": "682ebf98-b3e2-4912-98ff-63f3de0fb031",
+      "name": "Tool Clima Prep",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://geocoding-api.open-meteo.com/v1/search?name={{ encodeURIComponent($json.cidade) }}&count=1&language=pt&format=json",
+        "options": {
+          "timeout": 8000
+        }
+      },
+      "id": "55f41776-64e3-40a2-acdd-f730218a412f",
+      "name": "HTTP Open-Meteo Geocoding",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        464,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const geoData = $input.first().json;\nconst ctx = $('Tool Clima Prep').first().json;\n\nconst result = geoData?.results?.[0];\nconst lat = result?.latitude ?? -15.77;\nconst lon = result?.longitude ?? -47.92;\nconst nomeCidade = result?.name ?? ctx.cidade;\nconst uf = result?.admin1 ?? ctx.estado ?? '';\n\nreturn [{ json: { lat, lon, nomeCidade, uf, cidade: ctx.cidade, estado: ctx.estado } }];"
+      },
+      "id": "10825504-6e95-4ea7-9708-b04a305b0a66",
+      "name": "Tool Clima Coord",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        704,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.open-meteo.com/v1/forecast?latitude={{ $json.lat }}&longitude={{ $json.lon }}&daily=precipitation_sum,temperature_2m_max,temperature_2m_min,weathercode&timezone=America%2FSao_Paulo&forecast_days=7",
+        "options": {
+          "timeout": 8000
+        }
+      },
+      "id": "b5033adb-2e6a-4f49-880c-dda40ffd0287",
+      "name": "HTTP Open-Meteo Previsao",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        944,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const apiData = $input.first().json;\nconst ctx = $('Tool Clima Coord').first().json;\nconst { nomeCidade, uf } = ctx;\n\nconst wmoDesc = (code) => {\n  if (code === 0) return 'ceu limpo';\n  if (code <= 3) return 'parcialmente nublado';\n  if (code <= 49) return 'nublado';\n  if (code <= 67) return 'chuva';\n  if (code <= 82) return 'chuva forte';\n  if (code <= 99) return 'tempestade';\n  return 'variavel';\n};\n\ntry {\n  const daily = apiData.daily;\n  if (!daily) throw new Error('sem dados');\n\n  const chuva = daily.precipitation_sum.slice(0, 5);\n  const tempMax = daily.temperature_2m_max.slice(0, 5);\n  const tempMin = daily.temperature_2m_min.slice(0, 5);\n  const wmo = daily.weathercode.slice(0, 5);\n\n  const totalChuva = chuva.reduce((a, b) => a + (b ?? 0), 0).toFixed(0);\n  const maxTemp = Math.max(...tempMax).toFixed(0);\n  const minTemp = Math.min(...tempMin).toFixed(0);\n  const hoje = wmoDesc(wmo[0]);\n  const local = uf ? nomeCidade + '/' + uf : nomeCidade;\n\n  return [{ json: { resultado: local + ' - proximos 5 dias: Chuva acumulada ' + totalChuva + 'mm | Temp min ' + minTemp + 'C / max ' + maxTemp + 'C | Hoje: ' + hoje + ' | Fonte: Open-Meteo' } }];\n} catch(e) {\n  return [{ json: { resultado: 'Previsao do tempo indisponivel para essa cidade no momento.' } }];\n}"
+      },
+      "id": "f2bae654-2251-4184-b62c-49a32505268d",
+      "name": "Tool Clima Formatar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1184,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "36b2437b-d0d2-4b77-a31d-cfed80e324fc",
+      "typeVersion": 1.1,
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        16,
+        272
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Tool Clima Prep": {
+      "main": [
+        [
+          {
+            "node": "HTTP Open-Meteo Geocoding",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Open-Meteo Geocoding": {
+      "main": [
+        [
+          {
+            "node": "Tool Clima Coord",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool Clima Coord": {
+      "main": [
+        [
+          {
+            "node": "HTTP Open-Meteo Previsao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Open-Meteo Previsao": {
+      "main": [
+        [
+          {
+            "node": "Tool Clima Formatar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Tool Clima Prep",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "7a182f61-728e-4aaf-9aa2-44679b1ca355",
+  "meta": {
+    "instanceId": "8aebff44e01b64174ada2afb1f393a349734932b543f78ee07e9ee3c1c89f3e7"
+  },
+  "id": "7JDh5tISb1rpyleD",
+  "tags": []
+}

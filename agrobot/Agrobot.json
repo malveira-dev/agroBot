@@ -1,0 +1,548 @@
+{
+  "name": "Agrobot",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agrobot",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -432,
+        -80
+      ],
+      "id": "ea710d76-6d29-4dc8-92af-a9bc8a6c3162",
+      "name": "Webhook",
+      "webhookId": "190fe265-564c-4a56-915c-132c135e107c"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.tipoMensagem }}",
+                    "rightValue": "conversation",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "7d50431b-dc74-4885-acda-f99592828f1e"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Texto"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "d6ef8769-0b5b-4e43-94ea-52484b3631cf",
+                    "leftValue": "={{ $json.tipoMensagem }}",
+                    "rightValue": "audioMessage",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Áudio"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        32,
+        -80
+      ],
+      "id": "bce73593-bbdf-480c-a08b-31c5426dd01c",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "data.base64",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        480,
+        112
+      ],
+      "id": "f38c6f43-ee73-442c-801e-74e18c32142a",
+      "name": "Converter base64 para áudio."
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "options": {
+          "language": "pt"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        672,
+        112
+      ],
+      "id": "e5cd59b6-6f76-4f22-883e-57ea689ea2de",
+      "name": "Transcrever áudio",
+      "credentials": {
+        "openAiApi": {
+          "id": "0YngFlgtUkP3z4jD",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "chat-api",
+        "operation": "get-media-base64",
+        "instanceName": "=OdontoBot",
+        "messageId": "={{ $('Dados').item.json.IdMensagem }}",
+        "convertToMp4": true
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        304,
+        112
+      ],
+      "id": "f0791b97-4e1a-4151-abf0-b0e163848453",
+      "name": "Download áudio",
+      "credentials": {
+        "evolutionApi": {
+          "id": "5n5b2C3vBPcOJr8d",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d29ae5a6-0f4d-4bf7-b8f1-b77608e1ea74",
+              "name": "mensagem",
+              "value": "={{ $('Transcrever áudio').item.json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        864,
+        112
+      ],
+      "id": "7ca75c5c-1ac4-4f6e-b0a7-32de035b8bad",
+      "name": "Set mensagem.",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1216,
+        144
+      ],
+      "id": "d7e4439d-12c6-4839-b3bb-a8036f64e4c2",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "0YngFlgtUkP3z4jD",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Dados').item.json.telefoneUsuario }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        1360,
+        144
+      ],
+      "id": "525336a2-42eb-4763-9dde-0b9077c265fd",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "name": "consultar_preco_commodity",
+        "description": "Consulta o preco atual de uma commodity agricola (soja, milho, cafe, algodao, arroz, trigo, boi gordo). Use quando o usuario perguntar sobre preco, cotacao ou variacao de qualquer produto agricola. Parametros: commodity (string com o nome da commodity), data (opcional, string YYYY-MM-DD).",
+        "workflowId": {
+          "__rl": true,
+          "value": "lccevabohCqJvYyf",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/lccevabohCqJvYyf",
+          "cachedResultName": "Consultar preço"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "id": "05f42839-7c6a-4e1b-8651-86bb00ff8e17",
+      "name": "consultar_preco",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2,
+      "position": [
+        1616,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "name": "consultar_previsao_tempo",
+        "description": "Consulta a previsao do tempo para uma cidade brasileira. Use quando o usuario perguntar sobre clima, chuva, temperatura, tempo em alguma cidade ou regiao do Brasil. Parametros: cidade (string com o nome da cidade), estado (string com a sigla da UF, ex: MT, SP, GO).",
+        "workflowId": {
+          "__rl": true,
+          "value": "7JDh5tISb1rpyleD",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/7JDh5tISb1rpyleD",
+          "cachedResultName": "Previsão de tempo"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "id": "173d0c60-5946-4ff7-a73e-8dd2818d38a6",
+      "name": "consultar_previsão_tempo",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2,
+      "position": [
+        1792,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "OdontoBot",
+        "remoteJid": "={{ $('Dados').item.json.telefoneUsuario }}",
+        "messageText": "={{ $('AgroBot').item.json.output }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        1776,
+        -80
+      ],
+      "id": "1f3d54ab-5b59-4a05-9723-3b5931d9b09d",
+      "name": "Enviar texto",
+      "credentials": {
+        "evolutionApi": {
+          "id": "5n5b2C3vBPcOJr8d",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "chat-api",
+        "operation": "read-messages",
+        "instanceName": "={{ $('Dados').item.json.instancia }}",
+        "remoteJid": "={{ $('Dados').item.json.telefoneUsuario }}",
+        "messageId": "={{ $('Dados').item.json.IdMensagem }}"
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        -80
+      ],
+      "id": "9685bcb6-33a8-4ef6-bd3a-05d10409c161",
+      "name": "Marcar mensagens como lidas",
+      "credentials": {
+        "evolutionApi": {
+          "id": "5n5b2C3vBPcOJr8d",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "34136409-7e05-4517-9ab7-e217f24037b0",
+              "name": "mensagem",
+              "value": "={{ $json.body.data.message.conversation }}",
+              "type": "string"
+            },
+            {
+              "id": "35c1d1e1-6757-4de4-a1ae-29df6ee0d2ec",
+              "name": "telefoneUsuario",
+              "value": "={{ $json.body.data.key.remoteJid }}",
+              "type": "string"
+            },
+            {
+              "id": "4eb8e4fa-9d29-4a89-b6f4-b6da8d43599c",
+              "name": "nomeUsuario",
+              "value": "={{ $json.body.data.pushName }}",
+              "type": "string"
+            },
+            {
+              "id": "2ae5b088-46e2-4f8d-9828-aac5a295402c",
+              "name": "IdMensagem",
+              "value": "={{ $json.body.data.key.id }}",
+              "type": "string"
+            },
+            {
+              "id": "a43372d0-9f65-4dac-9094-5e47ef0de118",
+              "name": "instancia",
+              "value": "={{ $json.body.instance }}",
+              "type": "string"
+            },
+            {
+              "id": "519d7330-68a8-4918-8a2c-e0cd4727a95f",
+              "name": "tipoMensagem",
+              "value": "={{ $json.body.data.messageType }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -224,
+        -80
+      ],
+      "id": "685f5ac7-6b6e-41a5-96fb-bf539ac2d87b",
+      "name": "Dados"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Dados').item.json.mensagem }}",
+        "options": {
+          "systemMessage": "Você é o AgroBot, um assistente especializado em inteligência de mercado para o agronegócio brasileiro. Você foi criado para ajudar produtores rurais, traders e analistas a consultar dados reais de commodities, exportações e condições climáticas de forma rápida e descomplicada — direto pelo WhatsApp.\nSeu tom é direto, amigável e confiável. Você fala como um analista experiente do agro, sem jargões desnecessários. Suas respostas são objetivas e sempre baseadas em dados reais.\n\n# CONTEXTO\nVocê está integrado a uma plataforma de mensageria (WhatsApp). As mensagens chegam como texto simples. Os usuários podem ser: produtores rurais, corretores de grãos, analistas de mercado ou gestores de fazenda.\n\n# FERRAMENTAS DISPONÍVEIS\nVocê tem acesso às seguintes funções. Sempre que uma pergunta do usuário se encaixar em uma delas, chame a ferramenta correspondente antes de responder. Nunca invente dados — se não souber, diga que vai buscar.\n\n[TOOL: consultar_preco_commodity]\n- Quando usar: usuário pergunta sobre preço, cotação ou variação de uma commodity\n- Exemplos: \"qual o preço da soja?\", \"como está o milho hoje?\", \"cotação do boi gordo\"\n- Parâmetros: commodity (string), data (opcional, padrão = hoje)\n- Fonte: CONAB / CEPEA\n\n[TOOL: consultar_previsao_tempo]\n- Quando usar: perguntas sobre clima, chuva, temperatura em uma cidade ou região\n- Exemplos: \"como vai o tempo em Sorriso?\", \"vai chover em Cascavel essa semana?\"\n- Parâmetros: cidade (string), estado (string)\n- Fonte: Open-Meteo\n\nFUNÇÃO DE CONVERSÃO (PROMPT-ONLY)\nVocê possui capacidade nativa de converter unidades agrícolas sem precisar de ferramentas externas. Sempre que solicitado, realize os cálculos usando as seguintes métricas de referência:\n\n1 Alqueire Goiano = 4,84 hectares\n1 Alqueire Paulista = 2,42 hectares\n1 Saca (soja/milho) = 60 kg\n1 Arroba (@) = 15 kg de carcaça\nPara cálculos de dosagem (litros/ha), multiplique a dose pela área total informada.\n\n# FORMATO DAS RESPOSTAS\n- Mensagens curtas e diretas. Máximo de 5 linhas por resposta no WhatsApp.\n- Use números formatados em PT-BR: R$ 1.250,00 e não R$ 1250.00\n- Ao apresentar dados, sempre informe a fonte e a data de referência.\n- Nunca use markdown (negrito, tabelas, listas com hifens) — o WhatsApp não renderiza.\n- Substitua listas por texto corrido ou use emojis simples como separadores.\n- Se a pergunta for ambígua, faça apenas uma pergunta de esclarecimento antes de executar.\n\n# EXEMPLOS DE RESPOSTA\nUsuário: \"preço da soja hoje\"\nResposta: \"🌱 Soja (sc 60kg) — R$ 142,50 em Paranaguá/PR. Variação: +1,2% vs ontem. Fonte: CEPEA, 13/04/2026.\"\n\nUsuário: \"vai chover em Sorriso essa semana?\"\nResposta: \"🌦 Sorriso/MT — Previsão: chuva de 40-60mm entre quarta e quinta. Temp. entre 24°C e 33°C. Fonte: Open-Meteo.\"\n\n# LIMITAÇÕES\n- Você não dá recomendações de compra ou venda de commodities.\n- Você não responde perguntas fora do contexto do agronegócio e mercado rural.\n- Se a ferramenta retornar erro ou dado indisponível, informe o usuário de forma clara e sugira tentar novamente.\n- Nunca mencione detalhes técnicos da sua implementação (N8N, APIs, Evolution API etc).\n\n# ENCERRAMENTO\nSe o usuário agradecer ou encerrar a conversa, responda brevemente e reforce que está disponível. Exemplo: \"Disponha! Qualquer dúvida sobre o mercado, é só chamar. 🌾\""
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        1248,
+        -80
+      ],
+      "id": "d6890e7a-4781-4aa1-b0fa-de7471fd2141",
+      "name": "AgroBot"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Dados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "AgroBot",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Download áudio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Converter base64 para áudio.": {
+      "main": [
+        [
+          {
+            "node": "Transcrever áudio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcrever áudio": {
+      "main": [
+        [
+          {
+            "node": "Set mensagem.",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download áudio": {
+      "main": [
+        [
+          {
+            "node": "Converter base64 para áudio.",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set mensagem.": {
+      "main": [
+        [
+          {
+            "node": "AgroBot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AgroBot",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AgroBot",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "consultar_preco": {
+      "ai_tool": [
+        [
+          {
+            "node": "AgroBot",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "consultar_previsão_tempo": {
+      "ai_tool": [
+        [
+          {
+            "node": "AgroBot",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcar mensagens como lidas": {
+      "main": [
+        [
+          {
+            "node": "Enviar texto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dados": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AgroBot": {
+      "main": [
+        [
+          {
+            "node": "Marcar mensagens como lidas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "3a19837b-dc9b-46fc-bd0d-69ddc678b9bd",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8aebff44e01b64174ada2afb1f393a349734932b543f78ee07e9ee3c1c89f3e7"
+  },
+  "id": "sY4Wq7qN2lzEvDCp",
+  "tags": []
+}
